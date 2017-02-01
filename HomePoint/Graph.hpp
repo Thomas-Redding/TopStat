@@ -1,6 +1,9 @@
 #include <map>
 #include <set>
 
+/*
+ * A graph with undirected, unweighted edges, and vertices labeled by integers.
+ */
 class IntGraph {
 public:
     IntGraph(uint num) {
@@ -29,6 +32,16 @@ private:
     std::map<uint, std::set<uint>> edges;
 };
 
+/*
+ * Allows IntGraph to printed out nicely using std::cout
+ * For instance, the graph 0 -- 1 -- 2 -- 3 would be displayed:
+ * 0: 1
+ * 1: 0, 2
+ * 2: 1, 3
+ * 3: 2
+ * or, more generally,
+ * vertex: list-of-neighbors
+ */
 std::ostream& operator << (std::ostream& os, IntGraph& graph) {
     for (uint i = 0; i < graph.size(); ++i) {
         std::set<uint> neighbors = graph.get_neighbors(i);

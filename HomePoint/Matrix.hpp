@@ -1,13 +1,24 @@
 template <class T>
 class Matrix {
 public:
+    /*
+     * Create the zero matrix with the given width and height
+     */
     Matrix(uint w, uint h) {
         width = w;
         height = h;
         arr = new T*[w];
-        for (uint i = 0; i < w; ++i)
+        for (uint i = 0; i < w; ++i) {
             arr[i] = new T[h];
+            for (uint j = 0; j < h; ++j) {
+                arr[i][j] = T();
+            }
+        }
     }
+
+    /*
+     * Create a matrix from a vector of vectors
+     */
     Matrix (std::vector<std::vector<double>> input) {
         width = input.size();
         height = input[0].size();
@@ -40,6 +51,13 @@ private:
     uint height = 0;
     T** arr;
 };
+
+/*
+ * allow matrices to printed out nicely using std::cout
+ * 1  2  3
+ * 4  5  6
+ * 7  8  9
+ */
 template <class T>
 std::ostream& operator << (std::ostream& os, Matrix<T>& mat) {
     for (int i = 0; i < mat.get_width(); ++i) {
@@ -48,4 +66,28 @@ std::ostream& operator << (std::ostream& os, Matrix<T>& mat) {
         os << "\n";
     }
     return os;  
+}
+
+/*
+ * convert a string of "space-separated-values" into a matrix
+ */
+Matrix<double> string_to_matrix(std::string str) {
+    uint from = 0;
+    std::vector<std::vector<double>> answer;
+    answer.push_back(std::vector<double>());
+    for (int i = 0; i < str.length(); ++i) {
+        if (str[i] == ' ') {
+            std::string float_str = str.substr(from, i - from);
+            answer.back().push_back(stof(float_str));
+            from = i + 1;
+        }
+        else if (str[i] == '\n') {
+            std::string float_str = str.substr(from, i - from);
+            answer.back().push_back(stof(float_str));
+            from = i + 1;
+            answer.push_back(std::vector<double>());
+        }
+    }
+    answer.pop_back();
+    return Matrix<double>(answer);
 }

@@ -7,11 +7,14 @@
 #include "Graph.hpp"
 #include "Matrix.hpp"
 
-std::string read_file(std::string path) {
+/*
+ * utility function to read the contents of a text file
+ */
+std::string read_file(std::string filepath) {
     std::string line;
     std::string contents = "";
 
-    std::ifstream file(path);
+    std::ifstream file(filepath);
     if (file.is_open()) {
         while(getline(file, line)) {
             contents += line;
@@ -20,45 +23,26 @@ std::string read_file(std::string path) {
         file.close();
     }
     else {
-        throw std::invalid_argument("File \"" + path + "\" not found.");
+        throw std::invalid_argument("File \"" + filepath + "\" not found.");
     }
     return contents;
 }
 
-Matrix<double> string_to_matrix(std::string str) {
-    uint from = 0;
-    std::vector<std::vector<double>> answer;
-    answer.push_back(std::vector<double>());
-    for (int i = 0; i < str.length(); ++i) {
-        if (str[i] == ' ') {
-            std::string float_str = str.substr(from, i - from);
-            answer.back().push_back(stof(float_str));
-            from = i + 1;
-        }
-        else if (str[i] == '\n') {
-            std::string float_str = str.substr(from, i - from);
-            answer.back().push_back(stof(float_str));
-            from = i + 1;
-            answer.push_back(std::vector<double>());
-        }
-    }
-    answer.pop_back();
-    return Matrix<double>(answer);
-}
-
 int main(int argc, const char * argv[]) {
-	auto timeStart = std::chrono::high_resolution_clock::now();
+    // make sure we have the correct number of arguments
 	if (argc != 3) {
 		std::cout << "Error: need to pass in two arguments (input-file and epsilon)" << std::endl;
 		return 0;
 	}
 
+    // process arguments
 	std::string file_path = argv[1];
     double epsilon = atof(argv[2]);
     double epislon_squared = epsilon * epsilon;
     std::string file_contents = read_file(file_path);
     Matrix<double> points = string_to_matrix(file_contents);
 
+    // construct graph
     int num_points = points.get_width();
     int num_dim = points.get_height();
     double dx;
@@ -76,6 +60,8 @@ int main(int argc, const char * argv[]) {
             }
         }
     }
+
+    // print graph
     std::cout << my_graph;
     return 0;
 }
