@@ -1,0 +1,37 @@
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+
+function rand(x) {
+    return Math.random() * x;
+}
+
+onload = function () {
+    var x = new Array();
+    var y = new Array();
+    var z = new Array();
+    var r = 10;
+    var thickness = 0;
+    var theta, phi, r2;
+    for (var i = 0; i < 1000; ++i) {
+        theta = rand(2*Math.PI);
+        phi = Math.asin(rand(2)-1);
+        // if (phi > Math.PI/2)
+        //     phi -= Math.PI;
+        r2 = r + rand(thickness)-thickness/2;
+        x.push(Math.cos(theta)*Math.cos(phi)*r);
+        y.push(Math.sin(theta)*Math.cos(phi)*r);
+        z.push(Math.sin(phi)*r);
+    }
+
+    for (var i = 0; i < x.length; ++i) {
+        out.innerHTML += x[i] + " " + y[i] + " " + z[i] + " 0<br>";
+    }
+}
+
+</script>
+</head>
+<body>
+<div id="out"></div>
+</body>

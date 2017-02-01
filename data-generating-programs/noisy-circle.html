@@ -1,0 +1,32 @@
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+
+function rand(x) {
+    return Math.random() * x;
+}
+
+onload = function () {
+    var x = new Array();
+    var y = new Array();
+    var z = new Array();
+    var r = 10;
+    var thickness = 0;
+    var theta, r2;
+    for (var theta = 0; theta < 360; ++theta) {
+        var r2 = r + rand(2) - 1;
+        x.push(r2 * Math.cos(theta/180*Math.PI));
+        y.push(r2 * Math.sin(theta/180*Math.PI));
+    }
+
+    for (var i = 0; i < x.length; ++i) {
+        out.innerHTML += x[i] + " " + y[i] + " 0<br>";
+    }
+}
+
+</script>
+</head>
+<body>
+<div id="out"></div>
+</body>
