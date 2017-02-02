@@ -1,3 +1,6 @@
+#ifndef MATRIX_HPP
+#define MATRIX_HPP
+
 template <class T>
 class Matrix {
 public:
@@ -68,26 +71,4 @@ std::ostream& operator << (std::ostream& os, Matrix<T>& mat) {
     return os;  
 }
 
-/*
- * convert a string of "space-separated-values" into a matrix
- */
-Matrix<double> string_to_matrix(std::string str) {
-    uint from = 0;
-    std::vector<std::vector<double>> answer;
-    answer.push_back(std::vector<double>());
-    for (int i = 0; i < str.length(); ++i) {
-        if (str[i] == ' ') {
-            std::string float_str = str.substr(from, i - from);
-            answer.back().push_back(stof(float_str));
-            from = i + 1;
-        }
-        else if (str[i] == '\n') {
-            std::string float_str = str.substr(from, i - from);
-            answer.back().push_back(stof(float_str));
-            from = i + 1;
-            answer.push_back(std::vector<double>());
-        }
-    }
-    answer.pop_back();
-    return Matrix<double>(answer);
-}
+#endif
