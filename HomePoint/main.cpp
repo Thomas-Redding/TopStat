@@ -6,6 +6,7 @@
 
 #include "Graph.hpp"
 #include "Matrix.hpp"
+#include "Algorithms.hpp"
 
 /*
  * utility function to read the contents of a text file
@@ -36,33 +37,34 @@ int main(int argc, const char * argv[]) {
 	}
 
     // process arguments
+    // let n = number of points
+    // let d = number of dimensions
+    // let e = edges in graph of average point
+    // let b = number of betti #s
 	std::string file_path = argv[1];
     double epsilon = atof(argv[2]);
-    double epislon_squared = epsilon * epsilon;
-    std::string file_contents = read_file(file_path);
-    Matrix<double> points = string_to_matrix(file_contents);
 
-    // construct graph
-    int num_points = points.get_width();
-    int num_dim = points.get_height();
-    double dx;
-    double dist_squred;
-    IntGraph my_graph(num_points);
-    for (uint i = 0; i < num_points; ++i) {
-        for (uint j = 0; j < i; ++j) {
-            dist_squred = 0;
-            for (uint k = 0; k < num_dim; ++k) {
-                dx = points.get(i, k) - points.get(j, k);
-                dist_squred += dx*dx;
-            }
-            if (dist_squred < epislon_squared) {
-                my_graph.add_edge(i, j);
-            }
-        }
-    }
+    // read file
+    // O(n * d)
+    std::string file_contents = read_file(file_path);
+
+    // convert points as text into a matrix
+    // O(n * d)
+    Matrix<double>* points = string_to_matrix(file_contents);
+
+    // convert points as a matrix into a graph
+    // O(n^2 * d)
+    // can probably speed up to O(n * e * d)
+    IntGraph *my_graph = matrix_to_graph(points, epsilon);
+
+    // TODO: find k-cells
+    // O(n * d * e^b)
+    // creates O(n * e^b) cells
+
+    // TODO: row-reduce matrices [slowest step]
+    // O(n^3 * e^b)
 
     // print graph
-    std::cout << my_graph;
+    std::cout << *my_graph;
     return 0;
 }
-

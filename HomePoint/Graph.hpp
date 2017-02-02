@@ -1,5 +1,10 @@
+#ifndef GRAPH_HPP
+#define GRAPH_HPP
+
 #include <map>
 #include <set>
+
+#include "Matrix.hpp"
 
 /*
  * A graph with undirected, unweighted edges, and vertices labeled by integers.
@@ -58,3 +63,5 @@ std::ostream& operator << (std::ostream& os, IntGraph& graph) {
     }
     return os;  
 }
+
+#endif
