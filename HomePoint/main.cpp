@@ -37,7 +37,10 @@ int main(int argc, const char * argv[]) {
 	}
 
     // process arguments
-    // let n = number of points; d = number of dimensions; e = edges in graph
+    // let n = number of points
+    // let d = number of dimensions
+    // let e = edges in graph of average point
+    // let b = number of betti #s
 	std::string file_path = argv[1];
     double epsilon = atof(argv[2]);
 
@@ -51,8 +54,15 @@ int main(int argc, const char * argv[]) {
 
     // convert points as a matrix into a graph
     // O(n^2 * d)
-    // can probably speed up to O(e * d)
+    // can probably speed up to O(n * e * d)
     IntGraph *my_graph = matrix_to_graph(points, epsilon);
+
+    // TODO: find k-cells
+    // O(n * d * e^b)
+    // creates O(n * e^b) cells
+
+    // TODO: row-reduce matrices [slowest step]
+    // O(n^3 * e^b)
 
     // print graph
     std::cout << *my_graph;
