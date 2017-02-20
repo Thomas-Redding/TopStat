@@ -11,18 +11,28 @@ onload = function () {
     var x = new Array();
     var y = new Array();
     var z = new Array();
-    var r = 10;
+    var r = 20;
     var thickness = 0;
     var theta, r2;
-    for (var theta = 0; theta < 360; ++theta) {
-        var r2 = r + rand(2) - 1;
-        x.push(r2 * Math.cos(theta/180*Math.PI));
-        y.push(r2 * Math.sin(theta/180*Math.PI));
+    for (var i = 0; i < 36; ++i) {
+        var theta = i / 36 * Math.PI * 2;
+        var r2 = r;// + rand(2) - 1;
+        x.push(r2 * Math.cos(theta));
+        y.push(r2 * Math.sin(theta));
     }
 
+    var str = "";
     for (var i = 0; i < x.length; ++i) {
-        out.innerHTML += x[i] + " " + y[i] + " 0<br>";
+        for (var j = 0; j < x.length; ++j) {
+            if (j != 0)
+                str += ","
+            var dist = Math.sqrt((x[i]-x[j])*(x[i]-x[j]) + (y[i]-y[j])*(y[i]-y[j]));
+            str += dist;
+        }
+        str += "<br>";
     }
+
+    out.innerHTML += str;
 }
 
 </script>

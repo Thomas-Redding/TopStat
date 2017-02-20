@@ -40,13 +40,13 @@ public:
     void set(uint x, uint y, T value) {
         arr[x][y] = value;
     }
-    T get(uint x, uint y) {
+    T get(uint x, uint y) const {
         return arr[x][y];
     }
-    uint get_width() {
+    uint get_width() const {
         return width;
     }
-    uint get_height() {
+    uint get_height() const {
         return height;
     }
 private:

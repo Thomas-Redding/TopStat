@@ -1,0 +1,88 @@
+<html>
+<head>
+<script>
+var cvs, c;
+
+function parse(str) {
+    var arr = str.split(/\n/g);
+    var dim = -1;
+    var bars = [[],[],[],[],[],[]];
+    for (var i = 0; i < arr.length; ++i) {
+        if (arr[i].substr(0, 3) == "Sig" || arr[i].substr(0, 3) == "per") {
+            ++dim;
+            continue;
+        }
+        arr[i] = arr[i].substr(1, arr[i].length-2);
+        if (arr[i] == "-1")
+            continue;
+        new_pair = arr[i].split(",");
+        new_pair[0] = parseFloat(new_pair[0]);
+        new_pair[1] = parseFloat(new_pair[1]);
+        bars[dim].push(new_pair);
+    }
+    console.log(bars);
+    return bars;
+}
+
+function ajax(txt) {
+    if(window.XMLHttpRequest)
+        ajaxObj = new XMLHttpRequest();
+    else
+        ajaxObj = new ActiveXObject("Microsoft.XMLHTTP");
+    
+    ajaxObj.onreadystatechange = function() {
+        if(ajaxObj.readyState==4) {
+            draw(ajaxObj.responseText)
+        }
+    };
+    ajaxObj.open("GET",txt,true);
+    ajaxObj.send();
+}
+
+function draw(str) {
+    bars = parse(str);
+    var maximum = 0;
+    var rows = 0;
+    for (var i = 0; i < bars.length; ++i) {
+        console.log("---");
+        for (var j = 0; j < bars[i].length; ++j) {
+            if (bars[i][j][1] > maximum)
+                maximum = bars[i][j][1];
+            if (isNaN(bars[i][j][1]))
+                bars[i][j][1] = 100000;
+            ++rows;
+        }
+        rows += 10;
+    }
+
+    var row_height = Math.min(cvs.height/rows, 15);
+    maximum += 1;
+
+    var k = 0;
+    for (var i = 0; i < bars.length; ++i) {
+        console.log("---");
+        for (var j = 0; j < bars[i].length; ++j) {
+            var x1 = bars[i][j][0] / maximum * cvs.width;
+            var x2 = bars[i][j][1] / maximum * cvs.width;
+            var y = k * row_height;
+            c.fillRect(x1, y, x2-x1, row_height+0.5);
+            ++k;
+        }
+        k += 10;
+    }
+}
+
+
+// bar = [x, y]
+var cvs, c;
+onload = function() {
+    cvs = document.getElementById("cvs");
+    c = cvs.getContext("2d");
+    ajax("data.txt");
+}
+</script>
+</head>
+<body>
+<canvas id="cvs" width="600" height="600" style="border: 1px solid #888;">
+</canvas>
+</html>
