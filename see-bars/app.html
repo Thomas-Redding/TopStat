@@ -6,10 +6,12 @@ var cvs, c;
 function parse(str) {
     var arr = str.split(/\n/g);
     var dim = -1;
-    var bars = [[],[],[],[],[],[]];
+    var bars = [[],[],[]];
     for (var i = 0; i < arr.length; ++i) {
-        if (arr[i].substr(0, 3) == "Sig" || arr[i].substr(0, 3) == "per") {
+        if (arr[i].substr(0, 3) == "per") {
             ++dim;
+        }
+        else if (arr[i].substr(0, 1) != "[" && dim == -1) {
             continue;
         }
         arr[i] = arr[i].substr(1, arr[i].length-2);
@@ -20,7 +22,6 @@ function parse(str) {
         new_pair[1] = parseFloat(new_pair[1]);
         bars[dim].push(new_pair);
     }
-    console.log(bars);
     return bars;
 }
 
@@ -43,6 +44,7 @@ function draw(str) {
     bars = parse(str);
     var maximum = 0;
     var rows = 0;
+    var spacing = 20;
     for (var i = 0; i < bars.length; ++i) {
         console.log("---");
         for (var j = 0; j < bars[i].length; ++j) {
@@ -52,23 +54,35 @@ function draw(str) {
                 bars[i][j][1] = 100000;
             ++rows;
         }
-        rows += 10;
+        rows += spacing;
     }
+    rows -= spacing;
 
     var row_height = Math.min(cvs.height/rows, 15);
-    maximum += 1;
+    row_height = 1;
+    maximum *= 1.1;
+    maximum = 0.6;
 
     var k = 0;
     for (var i = 0; i < bars.length; ++i) {
         console.log("---");
+        var y = k * row_height + (i-0.5) * spacing * row_height;
+        c.fillStyle = "red";
+        c.fillRect(0, y, cvs.width, row_height+0.5);
+        c.fillStyle = "black";
         for (var j = 0; j < bars[i].length; ++j) {
+            // if (isNaN(bars[i][j][0])) {
+            //     c.fillStyle = "red";
+            //     c.fillRect(0, y, cvs.width, row_height+0.5);
+            //     c.fillStyle = "black";
+            //     continue;
+            // }
             var x1 = bars[i][j][0] / maximum * cvs.width;
             var x2 = bars[i][j][1] / maximum * cvs.width;
-            var y = k * row_height;
+            var y = k * row_height + i * spacing * row_height;
             c.fillRect(x1, y, x2-x1, row_height+0.5);
             ++k;
         }
-        k += 10;
     }
 }
 
@@ -78,7 +92,7 @@ var cvs, c;
 onload = function() {
     cvs = document.getElementById("cvs");
     c = cvs.getContext("2d");
-    ajax("data.txt");
+    ajax("data1.txt");
 }
 </script>
 </head>
