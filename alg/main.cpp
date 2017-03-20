@@ -68,24 +68,30 @@ Simplex points_to_edge(Simplex P, Simplex Q, unsigned int num_points) {
  * ./bars input-file.txt output-file.txt
  */
 int main(int argc, const char * argv[]) {
+    // general error checking
+    std::cout << "making sure you didn't mess up..." << std::endl;
     if (argc < 3) terminate("too few arguments given (2 or 3 expected)");
     if (argc > 4) terminate("too many arguments given (2 or 3 expected)");
-
     std::string input_path = argv[1];
     std::string output_path = argv[2];
     std::string format = "points";
     if (argc == 4) format = argv[3];
-
     if (format != "points" && format != "distances")
         terminate("expected 'points', 'distances', or nothing as third argument");
 
-    std::cout << "loading file..." << std::endl;
+
+    // read file with input data
+    std::cout << "counting your data really fast..." << std::endl;
     std::string *input = read_file(input_path);
 
-    std::cout << "creating distance matrix..." << std::endl;
+
+    // compute distance matrix
+    std::cout << "using my ruler really fast..." << std::endl;
     Matrix *dist = create_distance_matrix(input, format);
 
-    std::cout << "creating list of simplices..." << std::endl;
+
+    // create empty array of simplicies
+    std::cout << "asking your computer for memory..." << std::endl;
     unsigned int num_points = dist->get_width();
     unsigned int num_edges = choose(num_points, 2);
     unsigned int num_triangles = choose(num_points, 3);
@@ -95,14 +101,18 @@ int main(int argc, const char * argv[]) {
     num_simplices += num_triangles;        // triangles
     SimplexInfo *simplices = new SimplexInfo[num_simplices];
 
-    std::cout << "adding points to list of simplices..." << std::endl;
+
+    // add points to array of simplices
+    std::cout << "looking at all your points..." << std::endl;
     int counter = 0;
     for (int i = 0; i < num_points; ++i) {
         simplices[counter] = SimplexInfo();
         ++counter;
     }
 
-    std::cout << "adding edges to list of simplices..." << std::endl;
+
+    // add edges to array of simplices
+    std::cout << "drawing lines between your points..." << std::endl;
     for (int i = 0; i < num_points; ++i) {
         for (int j = i+1; j < num_points; ++j) {
             simplices[counter] = SimplexInfo(dist->get(i, j), i, j);
@@ -110,7 +120,9 @@ int main(int argc, const char * argv[]) {
         }
     }
 
-    std::cout << "adding triangles to list of simplices..." << std::endl;
+
+    // add triangles to array of simplices
+    std::cout << "drawing triangles between your lines..." << std::endl;
     for (int i = 0; i < num_points; ++i) {
         for (int j = i+1; j < num_points; ++j) {
             for (int k = j+1; k < num_points; ++k) {
@@ -124,12 +136,16 @@ int main(int argc, const char * argv[]) {
         }
     }
 
-    std::cout << "sorting simplices in order of creation..." << std::endl;
+
+    // sort simplices by creation date (epsilon)
+    std::cout << "sorting shapes by distance to retirement..." << std::endl;
     Simplex *simplices_by_epsilon = new Simplex[num_simplices];
     for (int i = 0; i < num_simplices; ++i) simplices_by_epsilon[i] = i;
     sort_simplices_by_epsilon(simplices_by_epsilon, simplices, num_simplices);
 
-    std::cout << "coloring simplices..." << std::endl;
+
+    // we "color" simplices to detect whether new simplicies are positive or negative
+    std::cout << "coloring inside the lines..." << std::endl;
     std::map<Simplex, unsigned int> simplex_to_color;
     std::map<unsigned int, std::vector<Simplex>> color_to_simplices;
     for (int i = 0; i < num_simplices; ++i) {
@@ -138,14 +154,20 @@ int main(int argc, const char * argv[]) {
         color_to_simplices[i].push_back(i);
     }
 
-    std::cout << "starting Betti-0 bars..." << std::endl;
+
+    // create the bars associated with the 0-simplices (points)
+    std::cout << "creating a bunch of beautiful bars..." << std::endl;
     std::set<Simplex> creations;              // (index, dimension)
     std::map<Simplex, Simplex> killers;       // (index, dimension) -> (index, dimension)
     for (int i = 0; i < dist->get_width(); ++i) {
         creations.insert(i);
     }
 
-    std::cout << "expanding epsilons..." << std::endl;
+
+    // continue adding simplices as per
+    // Topological Persistence and Simplification
+    // - Herbert Edelsbrunner, David Letscher, and Afra Zomorodian
+    std::cout << "feeding and watering our points..." << std::endl;
     for (int it = num_points; it < num_simplices; ++it) {
         Simplex new_simplex = simplices_by_epsilon[it];
         SimplexInfo new_simplex_info = simplices[new_simplex];
@@ -207,7 +229,9 @@ int main(int argc, const char * argv[]) {
         }
     }
 
-    // erase bars of 0 length
+
+    // eliminate bars of length 0
+    std::cout << "pruning pitiful puny bars..." << std::endl;
     for (auto it = killers.begin(); it != killers.end();) {
         SimplexInfo start = simplices[(*it).first];
         SimplexInfo end = simplices[(*it).second];
@@ -221,24 +245,26 @@ int main(int argc, const char * argv[]) {
         }
     }
 
-    std::map<unsigned int, std::vector<Bar>> bars;
 
+    // combine infinite and finite bars
+    std::cout << "combining gods and humans..." << std::endl;
+    std::map<unsigned int, std::vector<Bar>> bars;
     bars[0] = std::vector<Bar>();
     bars[1] = std::vector<Bar>();
     bars[2] = std::vector<Bar>();
-
     float inf = std::numeric_limits<float>::max();
     for (auto it = creations.begin(); it != creations.end(); ++it) {
         SimplexInfo simp = simplices[*it];
         bars[simp.dim()].push_back(Bar(simp.dim(), simp.epsilon(), inf));
     }
-
     for (auto it = killers.begin(); it != killers.end(); ++it) {
         SimplexInfo start = simplices[(*it).first];
         SimplexInfo end = simplices[(*it).second];
         bars[start.dim()].push_back(Bar(start.dim(), start.epsilon(), end.epsilon()));
     }
 
+    // print bars to terminal
+    std::cout << "showing you the best bars..." << std::endl;
     for (auto it = bars.begin(); it != bars.end(); ++it) {
         unsigned int dim = (*it).first;
         std::cout << "dim: " << dim << std::endl;
@@ -251,15 +277,19 @@ int main(int argc, const char * argv[]) {
         }
     }
 
-    std::cout << "writing out bars..." << std::endl;
+
+    // save bars to output file
+    std::cout << "sharing our bars with your friend..." << std::endl;
     std::string output = "stuff";
     write_file(output_path, output);
 
-    std::cout << "cleaning up memory..." << std::endl;
+
+    std::cout << "patching up memory leaks..." << std::endl;
     delete input;
     delete dist;
     delete[] simplices;
 
-    std::cout << "Done." << std::endl;
+
+    std::cout << "You're welcome." << std::endl;
     return 0;
 }
