@@ -10,6 +10,11 @@
 #include "SimplexInfo.hpp"
 #include "SimplexPriorityQueue.hpp"
 
+/*
+ * Note, the 2-dimensional bars are definitely not good,
+ * because we need to consider only 3-simplices, which we currently don't.
+ * I don't guarantee the lower-dimensional bars work, but they might :)
+ */
 
 class Bar {
 public:
