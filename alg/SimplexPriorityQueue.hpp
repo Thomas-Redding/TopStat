@@ -32,6 +32,7 @@ unsigned int SimplexPriorityQueue::size() {
 void SimplexPriorityQueue::print() {
     std::cout << "[";
     for (int i = 0; i < arr.size(); ++i) {
+        std::cout << arr[i] << ">";
         print_simplex(arr[i], info);
     }
     std::cout << "]" << std::endl;

@@ -141,7 +141,7 @@ int main(int argc, const char * argv[]) {
     num_simplices += num_points;
     num_simplices += num_edges;
     num_simplices += num_triangles;
-    // num_simplices += num_tetrahedron;
+    num_simplices += num_tetrahedron;
     SimplexInfo *simplices = new SimplexInfo[num_simplices];
 
 
@@ -181,7 +181,6 @@ int main(int argc, const char * argv[]) {
 
 
     // add tetrahedrons to array of simplices
-    /*
     std::cout << "buying 3d land..." << std::endl;
     for (int i = 0; i < num_points; ++i) {
         for (int j = i+1; j < num_points; ++j) {
@@ -195,14 +194,12 @@ int main(int argc, const char * argv[]) {
                     Simplex face2 = points_to_triangle(i, j, l, num_points, num_edges);
                     Simplex face3 = points_to_triangle(i, k, l, num_points, num_edges);
                     Simplex face4 = points_to_triangle(j, k, l, num_points, num_edges);
-                    // std::cout << face1 << ", " << face2 << ", " << face3 << ", " << face4 << std::endl;
                     simplices[counter] = SimplexInfo(ep, face1, face2, face3, face4);
                     ++counter;
                 }
             }
         }
     }
-    */
 
     // print simplices for debuggin
     /*
@@ -246,16 +243,34 @@ int main(int argc, const char * argv[]) {
         Simplex new_simplex = simplices_by_epsilon[it];
         SimplexInfo new_simplex_info = simplices[new_simplex];
         unsigned int dim = new_simplex_info.dim();
+        // if (dim == 3)
+        //     continue;
         std::vector<Simplex> boundary = new_simplex_info.boundary();
 
         bool all_same_color = true;
         unsigned int col = simplex_to_color[boundary[0]];
         for (int i = 1; i < boundary.size(); ++i) {
+            if (simplex_to_color[boundary[i]] < col)
+                col = simplex_to_color[boundary[i]];
+        }
+
+        for (int i = 0; i < boundary.size(); ++i) {
             if (simplex_to_color[boundary[i]] != col) {
                 all_same_color = false;
                 break;
             }
         }
+
+        bool any_same_color = false;
+        for (int i = 0; i < boundary.size(); ++i) {
+            for (int j = i + 1; j < boundary.size(); ++j) {
+                if (simplex_to_color[boundary[i]] == simplex_to_color[boundary[j]]) {
+                    any_same_color = true;
+                    break;
+                }
+            }
+        }
+
 
         if (all_same_color) {
             // positive - belongs to a cycle
@@ -263,7 +278,7 @@ int main(int argc, const char * argv[]) {
         }
         else {
             // color newly connected components together
-            for (int i = 1; i < boundary.size(); ++i) {
+            for (int i = 0; i < boundary.size(); ++i) {
                 if (simplex_to_color[boundary[i]] != col) {
                     std::vector<Simplex> simplices_we_need_to_color = color_to_simplices[boundary[i]];
                     for (int j = 0; j < simplices_we_need_to_color.size(); ++j) {
@@ -283,7 +298,7 @@ int main(int argc, const char * argv[]) {
 
             while (true) {
                 Simplex youngest = spq.pop();
-                if (killers.find(youngest) == killers.end()) {
+                if (creations.find(youngest) != creations.end()) {
                     // "youngest" is still alive, so kill it
                     creations.erase(creations.find(youngest));
                     killers[youngest] = new_simplex;
@@ -291,9 +306,12 @@ int main(int argc, const char * argv[]) {
                 }
                 else {
                     // "youngest" is already dead; add it's killer's boundary
+                    if (killers.find(youngest) == killers.end())
+                        continue;
                     std::vector<Simplex> bound = simplices[killers[youngest]].boundary();
                     for (int i = 0; i < bound.size(); ++i) {
-                        spq.add(bound[i]);
+                        if (bound[i] != youngest)
+                            spq.add(bound[i]);
                     }
                 }
             }
