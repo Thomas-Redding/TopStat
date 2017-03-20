@@ -82,7 +82,6 @@ float cubic_solver(float a, float b, float c, float d) {
 
 
 Simplex points_to_triangle(Simplex P, Simplex Q, Simplex R, unsigned int num_points, unsigned int num_edges) {
-    std::cout << "points_to_triangle()" << std::endl;
     unsigned int n = num_points;
     Simplex p0 = std::min(P, std::min(Q, R));
     Simplex p2 = std::max(P, std::max(Q, R));
@@ -142,7 +141,7 @@ int main(int argc, const char * argv[]) {
     num_simplices += num_points;
     num_simplices += num_edges;
     num_simplices += num_triangles;
-    num_simplices += num_tetrahedron;
+    // num_simplices += num_tetrahedron;
     SimplexInfo *simplices = new SimplexInfo[num_simplices];
 
 
@@ -182,6 +181,7 @@ int main(int argc, const char * argv[]) {
 
 
     // add tetrahedrons to array of simplices
+    /*
     std::cout << "buying 3d land..." << std::endl;
     for (int i = 0; i < num_points; ++i) {
         for (int j = i+1; j < num_points; ++j) {
@@ -195,15 +195,20 @@ int main(int argc, const char * argv[]) {
                     Simplex face2 = points_to_triangle(i, j, l, num_points, num_edges);
                     Simplex face3 = points_to_triangle(i, k, l, num_points, num_edges);
                     Simplex face4 = points_to_triangle(j, k, l, num_points, num_edges);
-                    std::cout << face1 << ", " << face2 << ", " << face3 << ", " << face4 << std::endl;
+                    // std::cout << face1 << ", " << face2 << ", " << face3 << ", " << face4 << std::endl;
                     simplices[counter] = SimplexInfo(ep, face1, face2, face3, face4);
                     ++counter;
                 }
             }
         }
     }
+    */
 
-    // TODO
+    // print simplices for debuggin
+    /*
+    for (int i = 0; i < num_simplices; ++i)
+        std::cout << simplices[i];
+    */
 
 
     // sort simplices by creation date (epsilon)
@@ -269,13 +274,11 @@ int main(int argc, const char * argv[]) {
                 }
             }
 
-
             // negative - connects components
             // find "victim" (simplex whose bar I end)
             SimplexPriorityQueue spq(simplices, num_simplices);
             for (int i = 0; i < boundary.size(); ++i) {
-                if (creations.find(boundary[i]) != creations.end())
-                    spq.add(boundary[i]);
+                spq.add(boundary[i]);
             }
 
             while (true) {
@@ -290,8 +293,7 @@ int main(int argc, const char * argv[]) {
                     // "youngest" is already dead; add it's killer's boundary
                     std::vector<Simplex> bound = simplices[killers[youngest]].boundary();
                     for (int i = 0; i < bound.size(); ++i) {
-                        if (creations.find(boundary[i]) != creations.end())
-                            spq.add(bound[i]);
+                        spq.add(bound[i]);
                     }
                 }
             }
@@ -321,6 +323,7 @@ int main(int argc, const char * argv[]) {
     bars[0] = std::vector<Bar>();
     bars[1] = std::vector<Bar>();
     bars[2] = std::vector<Bar>();
+    bars[3] = std::vector<Bar>();
     float inf = std::numeric_limits<float>::max();
     for (auto it = creations.begin(); it != creations.end(); ++it) {
         SimplexInfo simp = simplices[*it];

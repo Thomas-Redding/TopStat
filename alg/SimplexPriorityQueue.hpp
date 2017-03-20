@@ -47,7 +47,7 @@ void SimplexPriorityQueue::add(Simplex val) {
     // add to queue
     int i;
     for (i = 0; i < arr.size(); ++i) {
-        if (info[val].epsilon() > info[i].epsilon()) {
+        if (info[val].epsilon() > info[arr[i]].epsilon()) {
             arr.insert(arr.begin()+i, val);
             break;
         }

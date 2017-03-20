@@ -64,11 +64,13 @@ bool operator > (const SimplexInfo &x, const SimplexInfo &y) {
 }
 
 void sort_simplices_by_epsilon(Simplex *indices, SimplexInfo *info, int len) {
-    for (int i = 0; i < len - 1; ++i) {
-        if (info[indices[i]] > info[indices[i+1]]) {
-            Simplex sto = indices[i];
-            indices[i] = indices[i+1];
-            indices[i+1] = sto;
+    for (int j = 0; j < len; ++j) {
+        for (int i = 0; i < len - 1; ++i) {
+            if (info[indices[i]] > info[indices[i+1]]) {
+                Simplex sto = indices[i];
+                indices[i] = indices[i+1];
+                indices[i+1] = sto;
+            }
         }
     }
 }
