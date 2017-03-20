@@ -3,11 +3,25 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
+#include <limits>
 
 #include "Matrix.hpp"
 #include "util.cpp"
 #include "SimplexInfo.hpp"
+#include "SimplexPriorityQueue.hpp"
 
+
+class Bar {
+public:
+    Bar(unsigned int d, float s, float e) {
+        dimension = d;
+        start = s;
+        end = e;
+    }
+    unsigned int dimension;
+    float start;
+    float end;
+};
 
 Matrix* create_distance_matrix(std::string *str, std::string format) {
     std::vector<std::vector<float>>* table = split(str);
@@ -70,24 +84,25 @@ int main(int argc, const char * argv[]) {
 
     std::cout << "creating distance matrix..." << std::endl;
     Matrix *dist = create_distance_matrix(input, format);
-    std::cout << *dist;
 
-    std::cout << "creating list of simplicies..." << std::endl;
+    std::cout << "creating list of simplices..." << std::endl;
     unsigned int num_points = dist->get_width();
+    unsigned int num_edges = choose(num_points, 2);
+    unsigned int num_triangles = choose(num_points, 3);
     unsigned int num_simplices = 0;
-    num_simplices += choose(num_points, 1);            // points
-    num_simplices += choose(num_points, 2);            // edges
-    num_simplices += choose(num_points, 3);            // triangles
+    num_simplices += num_points;           // points
+    num_simplices += num_edges;            // edges
+    num_simplices += num_triangles;        // triangles
     SimplexInfo *simplices = new SimplexInfo[num_simplices];
 
-    std::cout << "adding points to list of simplicies..." << std::endl;
+    std::cout << "adding points to list of simplices..." << std::endl;
     int counter = 0;
     for (int i = 0; i < num_points; ++i) {
         simplices[counter] = SimplexInfo();
         ++counter;
     }
 
-    std::cout << "adding edges to list of simplicies..." << std::endl;
+    std::cout << "adding edges to list of simplices..." << std::endl;
     for (int i = 0; i < num_points; ++i) {
         for (int j = i+1; j < num_points; ++j) {
             simplices[counter] = SimplexInfo(dist->get(i, j), i, j);
@@ -95,7 +110,7 @@ int main(int argc, const char * argv[]) {
         }
     }
 
-    std::cout << "adding triangles to list of simplicies..." << std::endl;
+    std::cout << "adding triangles to list of simplices..." << std::endl;
     for (int i = 0; i < num_points; ++i) {
         for (int j = i+1; j < num_points; ++j) {
             for (int k = j+1; k < num_points; ++k) {
@@ -109,18 +124,18 @@ int main(int argc, const char * argv[]) {
         }
     }
 
-    std::cout << "sorting simplicies in order of creation..." << std::endl;
+    std::cout << "sorting simplices in order of creation..." << std::endl;
     Simplex *simplices_by_epsilon = new Simplex[num_simplices];
     for (int i = 0; i < num_simplices; ++i) simplices_by_epsilon[i] = i;
     sort_simplices_by_epsilon(simplices_by_epsilon, simplices, num_simplices);
 
-    std::cout << "coloring points..." << std::endl;
-    std::map<Simplex, unsigned int> point_to_color;
-    std::map<unsigned int, std::vector<Simplex>> color_to_points;
-    for (int i = 0; i < dist->get_width(); ++i) {
-        point_to_color[i] = i;
-        color_to_points[i] = std::vector<Simplex>();
-        color_to_points[i].push_back(i);
+    std::cout << "coloring simplices..." << std::endl;
+    std::map<Simplex, unsigned int> simplex_to_color;
+    std::map<unsigned int, std::vector<Simplex>> color_to_simplices;
+    for (int i = 0; i < num_simplices; ++i) {
+        simplex_to_color[i] = i;
+        color_to_simplices[i] = std::vector<Simplex>();
+        color_to_simplices[i].push_back(i);
     }
 
     std::cout << "starting Betti-0 bars..." << std::endl;
@@ -131,25 +146,119 @@ int main(int argc, const char * argv[]) {
     }
 
     std::cout << "expanding epsilons..." << std::endl;
-    for (int it = 0; it < num_simplices; ++it) {
+    for (int it = num_points; it < num_simplices; ++it) {
         Simplex new_simplex = simplices_by_epsilon[it];
         SimplexInfo new_simplex_info = simplices[new_simplex];
-        forfeit
-        // todo
+        unsigned int dim = new_simplex_info.dim();
+        std::vector<Simplex> boundary = new_simplex_info.boundary();
+
+        bool all_same_color = true;
+        unsigned int col = simplex_to_color[boundary[0]];
+        for (int i = 1; i < boundary.size(); ++i) {
+            if (simplex_to_color[boundary[i]] != col) {
+                all_same_color = false;
+                break;
+            }
+        }
+
+        if (all_same_color) {
+            // positive - belongs to a cycle
+            creations.insert(new_simplex);
+        }
+        else {
+            // color newly connected components together
+            for (int i = 1; i < boundary.size(); ++i) {
+                if (simplex_to_color[boundary[i]] != col) {
+                    std::vector<Simplex> simplices_we_need_to_color = color_to_simplices[boundary[i]];
+                    for (int j = 0; j < simplices_we_need_to_color.size(); ++j) {
+                        simplex_to_color[simplices_we_need_to_color[j]] = col;
+                        color_to_simplices[col].push_back(simplices_we_need_to_color[j]);
+                    }
+                    color_to_simplices[boundary[i]] = std::vector<Simplex>();
+                }
+            }
+
+
+            // negative - connects components
+            // find "victim" (simplex whose bar I end)
+            SimplexPriorityQueue spq(simplices, num_simplices);
+            for (int i = 0; i < boundary.size(); ++i) {
+                if (creations.find(boundary[i]) != creations.end())
+                    spq.add(boundary[i]);
+            }
+
+            while (true) {
+                Simplex youngest = spq.pop();
+                if (killers.find(youngest) == killers.end()) {
+                    // "youngest" is still alive, so kill it
+                    creations.erase(creations.find(youngest));
+                    killers[youngest] = new_simplex;
+                    break;
+                }
+                else {
+                    // "youngest" is already dead; add it's killer's boundary
+                    std::vector<Simplex> bound = simplices[killers[youngest]].boundary();
+                    for (int i = 0; i < bound.size(); ++i) {
+                        if (creations.find(boundary[i]) != creations.end())
+                            spq.add(bound[i]);
+                    }
+                }
+            }
+        }
+    }
+
+    // erase bars of 0 length
+    for (auto it = killers.begin(); it != killers.end();) {
+        SimplexInfo start = simplices[(*it).first];
+        SimplexInfo end = simplices[(*it).second];
+        if (start.epsilon() == end.epsilon()) {
+            auto old_it = it;
+            ++it;
+            killers.erase(old_it);
+        }
+        else {
+            ++it;
+        }
+    }
+
+    std::map<unsigned int, std::vector<Bar>> bars;
+
+    bars[0] = std::vector<Bar>();
+    bars[1] = std::vector<Bar>();
+    bars[2] = std::vector<Bar>();
+
+    float inf = std::numeric_limits<float>::max();
+    for (auto it = creations.begin(); it != creations.end(); ++it) {
+        SimplexInfo simp = simplices[*it];
+        bars[simp.dim()].push_back(Bar(simp.dim(), simp.epsilon(), inf));
+    }
+
+    for (auto it = killers.begin(); it != killers.end(); ++it) {
+        SimplexInfo start = simplices[(*it).first];
+        SimplexInfo end = simplices[(*it).second];
+        bars[start.dim()].push_back(Bar(start.dim(), start.epsilon(), end.epsilon()));
+    }
+
+    for (auto it = bars.begin(); it != bars.end(); ++it) {
+        unsigned int dim = (*it).first;
+        std::cout << "dim: " << dim << std::endl;
+        std::vector<Bar> bar_vec = (*it).second;
+        for (unsigned int i = 0; i < bar_vec.size(); ++i) {
+            if (bar_vec[i].end == inf)
+                std::cout << "(" << bar_vec[i].start << ", inf)" << std::endl;
+            else
+                std::cout << "(" << bar_vec[i].start << ", " << bar_vec[i].end << ")" << std::endl;
+        }
     }
 
     std::cout << "writing out bars..." << std::endl;
     std::string output = "stuff";
     write_file(output_path, output);
 
-    // for (int i = 0; i < num_simplices; ++i) {
-    //     std::cout << i << ": ";
-    //     print_simplex(simplices_by_epsilon[i], simplices);
-    // }
-
     std::cout << "cleaning up memory..." << std::endl;
     delete input;
     delete dist;
+    delete[] simplices;
 
     std::cout << "Done." << std::endl;
     return 0;

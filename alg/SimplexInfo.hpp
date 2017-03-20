@@ -1,6 +1,6 @@
 
-#ifndef SimplexInfo_HPP
-#define SimplexInfo_HPP
+#ifndef SIMPLEXINFO_HPP
+#define SIMPLEXINFO_HPP
 
 #include <vector>
 
@@ -31,7 +31,8 @@ public:
     }
 
     unsigned int dim() const {
-        return _boundary.size();
+        if (_boundary.size() == 0) return 0;
+        else return _boundary.size() - 1;
     }
 
     std::vector<Simplex> boundary() const {

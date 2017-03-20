@@ -42,7 +42,8 @@ std::ostream& operator << (std::ostream& os, std::vector<V>& vec) {
 }
 
 void print_simplex(Simplex s, SimplexInfo* info) {
-    std::cout << info[s];
+    if (info[s].dim() == 0) std::cout << "{" << s << "}";
+    else std::cout << info[s];
 }
 
 int choose(int n, int k) {
