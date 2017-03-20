@@ -28,6 +28,7 @@ public:
     float end;
 };
 
+
 Matrix* create_distance_matrix(std::string *str, std::string format) {
     std::vector<std::vector<float>>* table = split(str);
     if (format == "points") {
@@ -63,11 +64,47 @@ Matrix* create_distance_matrix(std::string *str, std::string format) {
     }
 }
 
+
 Simplex points_to_edge(Simplex P, Simplex Q, unsigned int num_points) {
     Simplex from = std::min(P, Q);
     Simplex to = std::max(P, Q);
-    return num_points*from - from*(from+1.0)/2.0 + (to - from - 1) + num_points;
+    return num_points*from - from*(from+1.0)/2.0 + (to-from-1) + num_points;
 }
+
+
+// https://i.stack.imgur.com/M6L8y.png
+float cubic_solver(float a, float b, float c, float d) {
+    float term_1 = b/(-3*a);
+    float term_2 = 1/(-3*a) * cbrt(0.5*(2*b*b*b - 9*a*b*c + 27*a*a*d + sqrt(pow(2*b*b*b-9*a*b*c+27*a*a*d, 2) - 4*pow(b*b-3*a*c, 3))));
+    float term_3 = 1/(-3*a) * cbrt(0.5*(2*b*b*b - 9*a*b*c + 27*a*a*d - sqrt(pow(2*b*b*b-9*a*b*c+27*a*a*d, 2) - 4*pow(b*b-3*a*c, 3))));
+    return term_1 + term_2 + term_3;
+}
+
+
+Simplex points_to_triangle(Simplex P, Simplex Q, Simplex R, unsigned int num_points, unsigned int num_edges) {
+    std::cout << "points_to_triangle()" << std::endl;
+    unsigned int n = num_points;
+    Simplex p0 = std::min(P, std::min(Q, R));
+    Simplex p2 = std::max(P, std::max(Q, R));
+    Simplex p1 = 0;
+    if (P != p0 && P != p2) p1 = P;
+    else if (Q != p0 && Q != p2) p1 = Q;
+    else if (R != p0 && R != p2) p1 = R;
+
+    unsigned int counter = 0;
+    for (int i = 0; i < num_points; ++i) {
+        for (int j = i+1; j < num_points; ++j) {
+            for (int k = j+1; k < num_points; ++k) {
+                if (i == p0 && j == p1 && k == p2)
+                    return counter + num_edges + num_points;
+                ++counter;
+            }
+        }
+    }
+
+    return 0;
+}
+
 
 /*
  * ./bars input-file.txt output-file.txt
@@ -100,15 +137,17 @@ int main(int argc, const char * argv[]) {
     unsigned int num_points = dist->get_width();
     unsigned int num_edges = choose(num_points, 2);
     unsigned int num_triangles = choose(num_points, 3);
+    unsigned int num_tetrahedron = choose(num_points, 4);
     unsigned int num_simplices = 0;
-    num_simplices += num_points;           // points
-    num_simplices += num_edges;            // edges
-    num_simplices += num_triangles;        // triangles
+    num_simplices += num_points;
+    num_simplices += num_edges;
+    num_simplices += num_triangles;
+    num_simplices += num_tetrahedron;
     SimplexInfo *simplices = new SimplexInfo[num_simplices];
 
 
     // add points to array of simplices
-    std::cout << "looking at all your points..." << std::endl;
+    std::cout << "looking at all your seeds..." << std::endl;
     int counter = 0;
     for (int i = 0; i < num_points; ++i) {
         simplices[counter] = SimplexInfo();
@@ -117,7 +156,7 @@ int main(int argc, const char * argv[]) {
 
 
     // add edges to array of simplices
-    std::cout << "drawing lines between your points..." << std::endl;
+    std::cout << "plowing land..." << std::endl;
     for (int i = 0; i < num_points; ++i) {
         for (int j = i+1; j < num_points; ++j) {
             simplices[counter] = SimplexInfo(dist->get(i, j), i, j);
@@ -127,7 +166,7 @@ int main(int argc, const char * argv[]) {
 
 
     // add triangles to array of simplices
-    std::cout << "drawing triangles between your lines..." << std::endl;
+    std::cout << "buying more land..." << std::endl;
     for (int i = 0; i < num_points; ++i) {
         for (int j = i+1; j < num_points; ++j) {
             for (int k = j+1; k < num_points; ++k) {
@@ -140,6 +179,31 @@ int main(int argc, const char * argv[]) {
             }
         }
     }
+
+
+    // add tetrahedrons to array of simplices
+    std::cout << "buying 3d land..." << std::endl;
+    for (int i = 0; i < num_points; ++i) {
+        for (int j = i+1; j < num_points; ++j) {
+            for (int k = j+1; k < num_points; ++k) {
+                for (int l = k+1; l < num_points; ++l) {
+                    float ep = std::max(
+                        std::max(dist->get(i, j), std::max(dist->get(i, k), dist->get(i, l))),
+                        std::max(dist->get(j, k), std::max(dist->get(j, l), dist->get(k, l)))
+                    );
+                    Simplex face1 = points_to_triangle(i, j, k, num_points, num_edges);
+                    Simplex face2 = points_to_triangle(i, j, l, num_points, num_edges);
+                    Simplex face3 = points_to_triangle(i, k, l, num_points, num_edges);
+                    Simplex face4 = points_to_triangle(j, k, l, num_points, num_edges);
+                    std::cout << face1 << ", " << face2 << ", " << face3 << ", " << face4 << std::endl;
+                    simplices[counter] = SimplexInfo(ep, face1, face2, face3, face4);
+                    ++counter;
+                }
+            }
+        }
+    }
+
+    // TODO
 
 
     // sort simplices by creation date (epsilon)
@@ -161,7 +225,7 @@ int main(int argc, const char * argv[]) {
 
 
     // create the bars associated with the 0-simplices (points)
-    std::cout << "creating a bunch of beautiful bars..." << std::endl;
+    std::cout << "planting seeds..." << std::endl;
     std::set<Simplex> creations;              // (index, dimension)
     std::map<Simplex, Simplex> killers;       // (index, dimension) -> (index, dimension)
     for (int i = 0; i < dist->get_width(); ++i) {
@@ -172,7 +236,7 @@ int main(int argc, const char * argv[]) {
     // continue adding simplices as per
     // Topological Persistence and Simplification
     // - Herbert Edelsbrunner, David Letscher, and Afra Zomorodian
-    std::cout << "feeding and watering our points..." << std::endl;
+    std::cout << "feeding and watering our plants..." << std::endl;
     for (int it = num_points; it < num_simplices; ++it) {
         Simplex new_simplex = simplices_by_epsilon[it];
         SimplexInfo new_simplex_info = simplices[new_simplex];

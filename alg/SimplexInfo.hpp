@@ -26,6 +26,14 @@ public:
         _boundary.push_back(edge3);
     }
 
+    SimplexInfo(float e, Simplex tri1, Simplex tri2, Simplex tri3, Simplex tri4) {
+        ep = e;
+        _boundary.push_back(tri1);
+        _boundary.push_back(tri2);
+        _boundary.push_back(tri3);
+        _boundary.push_back(tri4);
+    }
+
     float epsilon() const {
         return ep;
     }
