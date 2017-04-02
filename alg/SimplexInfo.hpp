@@ -15,19 +15,28 @@ public:
     SimplexInfo(float e, Simplex from, Simplex to) {
         // edge
         ep = e;
+        _points.push_back(from);
+        _points.push_back(to);
         _boundary.push_back(from);
         _boundary.push_back(to);
     }
-    SimplexInfo(float e, Simplex edge1, Simplex edge2, Simplex edge3) {
+    SimplexInfo(float e, Simplex p1, Simplex p2, Simplex p3, Simplex edge1, Simplex edge2, Simplex edge3) {
         // triangle
         ep = e;
+        _points.push_back(p1);
+        _points.push_back(p2);
+        _points.push_back(p3);
         _boundary.push_back(edge1);
         _boundary.push_back(edge2);
         _boundary.push_back(edge3);
     }
 
-    SimplexInfo(float e, Simplex tri1, Simplex tri2, Simplex tri3, Simplex tri4) {
+    SimplexInfo(float e, Simplex p1, Simplex p2, Simplex p3, Simplex p4, Simplex tri1, Simplex tri2, Simplex tri3, Simplex tri4) {
         ep = e;
+        _points.push_back(p1);
+        _points.push_back(p2);
+        _points.push_back(p3);
+        _points.push_back(p4);
         _boundary.push_back(tri1);
         _boundary.push_back(tri2);
         _boundary.push_back(tri3);
@@ -46,9 +55,15 @@ public:
     std::vector<Simplex> boundary() const {
         return _boundary;
     }
+
+    std::vector<Simplex> points() const {
+        return _points;
+    }
+
 private:
     float ep;
     std::vector<Simplex> _boundary;
+    std::vector<Simplex> _points;
 };
 
 bool operator < (const SimplexInfo &x, const SimplexInfo &y) {
@@ -87,10 +102,16 @@ void sort_simplices_by_epsilon(Simplex *indices, SimplexInfo *info, int len) {
  */
 std::ostream& operator << (std::ostream& os, const SimplexInfo& simp) {
     os << "{\n  epsilon: " << simp.epsilon() << "\n  boundry: ";
-    std::vector<unsigned int> bound = simp.boundary();
+    std::vector<Simplex> bound = simp.boundary();
     for (int i = 0; i < bound.size(); ++i) {
         if (i != 0) os << ", ";
         os << bound[i];
+    }
+    os << "\n  points: ";
+    std::vector<Simplex> pts = simp.points();
+    for (int i = 0; i < pts.size(); ++i) {
+        if (i != 0) os << ", ";
+        os << pts[i];
     }
     os << "\n}\n";
     return os;  

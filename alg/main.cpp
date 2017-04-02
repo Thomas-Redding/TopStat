@@ -6,6 +6,7 @@
 #include <limits>
 
 #include "Matrix.hpp"
+#include "Basis.hpp"
 #include "util.cpp"
 #include "SimplexInfo.hpp"
 #include "SimplexPriorityQueue.hpp"
@@ -111,12 +112,11 @@ Simplex points_to_triangle(Simplex P, Simplex Q, Simplex R, unsigned int num_poi
 int main(int argc, const char * argv[]) {
     // general error checking
     std::cout << "making sure you didn't mess up..." << std::endl;
-    if (argc < 3) terminate("too few arguments given (2 or 3 expected)");
-    if (argc > 4) terminate("too many arguments given (2 or 3 expected)");
+    if (argc < 2) terminate("too few arguments given (2 or 3 expected)");
+    if (argc > 3) terminate("too many arguments given (2 or 3 expected)");
     std::string input_path = argv[1];
-    std::string output_path = argv[2];
     std::string format = "points";
-    if (argc == 4) format = argv[3];
+    if (argc == 3) format = argv[2];
     if (format != "points" && format != "distances")
         terminate("expected 'points', 'distances', or nothing as third argument");
 
@@ -143,6 +143,8 @@ int main(int argc, const char * argv[]) {
     num_simplices += num_triangles;
     num_simplices += num_tetrahedron;
     SimplexInfo *simplices = new SimplexInfo[num_simplices];
+
+    std::cout << num_points << ":" << num_edges << ":" << num_triangles << ":" << num_tetrahedron << std::endl;
 
 
     // add points to array of simplices
@@ -173,7 +175,7 @@ int main(int argc, const char * argv[]) {
                 Simplex edge1 = points_to_edge(i, j, num_points);
                 Simplex edge2 = points_to_edge(i, k, num_points);
                 Simplex edge3 = points_to_edge(j, k, num_points);
-                simplices[counter] = SimplexInfo(ep, edge1, edge2, edge3);
+                simplices[counter] = SimplexInfo(ep, i, j, k, edge1, edge2, edge3);
                 ++counter;
             }
         }
@@ -194,7 +196,7 @@ int main(int argc, const char * argv[]) {
                     Simplex face2 = points_to_triangle(i, j, l, num_points, num_edges);
                     Simplex face3 = points_to_triangle(i, k, l, num_points, num_edges);
                     Simplex face4 = points_to_triangle(j, k, l, num_points, num_edges);
-                    simplices[counter] = SimplexInfo(ep, face1, face2, face3, face4);
+                    simplices[counter] = SimplexInfo(ep, i, j, k, l, face1, face2, face3, face4);
                     ++counter;
                 }
             }
@@ -202,11 +204,8 @@ int main(int argc, const char * argv[]) {
     }
 
     // print simplices for debuggin
-    /*
-    for (int i = 0; i < num_simplices; ++i)
-        std::cout << simplices[i];
-    */
-
+    // for (int i = 0; i < num_simplices; ++i)
+    //     std::cout << simplices[i];
 
     // sort simplices by creation date (epsilon)
     std::cout << "sorting shapes by distance to retirement..." << std::endl;
@@ -217,12 +216,13 @@ int main(int argc, const char * argv[]) {
 
     // we "color" simplices to detect whether new simplicies are positive or negative
     std::cout << "coloring inside the lines..." << std::endl;
-    std::map<Simplex, unsigned int> simplex_to_color;
-    std::map<unsigned int, std::vector<Simplex>> color_to_simplices;
-    for (int i = 0; i < num_simplices; ++i) {
-        simplex_to_color[i] = i;
-        color_to_simplices[i] = std::vector<Simplex>();
-        color_to_simplices[i].push_back(i);
+    Basis boundary_operator2(num_edges);
+    int *point_to_color = new int[num_points]; // point_to_color[point_index]
+    std::map<unsigned int, std::vector<Simplex>> color_to_points; // color_to_points[color] = [point_indices]
+    for (int i = 0; i < num_points; ++i) {
+        point_to_color[i] = i;
+        color_to_points[i] = std::vector<Simplex>();
+        color_to_points[i].push_back(i);
     }
 
 
@@ -243,60 +243,84 @@ int main(int argc, const char * argv[]) {
         Simplex new_simplex = simplices_by_epsilon[it];
         SimplexInfo new_simplex_info = simplices[new_simplex];
         unsigned int dim = new_simplex_info.dim();
-        // if (dim == 3)
-        //     continue;
         std::vector<Simplex> boundary = new_simplex_info.boundary();
+        std::vector<Simplex> points = new_simplex_info.points();
 
-        bool all_same_color = true;
-        unsigned int col = simplex_to_color[boundary[0]];
-        for (int i = 1; i < boundary.size(); ++i) {
-            if (simplex_to_color[boundary[i]] < col)
-                col = simplex_to_color[boundary[i]];
-        }
-
-        for (int i = 0; i < boundary.size(); ++i) {
-            if (simplex_to_color[boundary[i]] != col) {
-                all_same_color = false;
-                break;
+        bool is_positive;
+        if (dim == 1) {
+            bool all_same_color = true;
+            unsigned int col = point_to_color[points[0]];
+            for (int i = 1; i < points.size(); ++i) {
+                if (point_to_color[points[i]] < col)
+                    col = point_to_color[points[i]];
             }
-        }
 
-        bool any_same_color = false;
-        for (int i = 0; i < boundary.size(); ++i) {
-            for (int j = i + 1; j < boundary.size(); ++j) {
-                if (simplex_to_color[boundary[i]] == simplex_to_color[boundary[j]]) {
-                    any_same_color = true;
+            for (int i = 0; i < points.size(); ++i) {
+                if (point_to_color[points[i]] != col) {
+                    all_same_color = false;
                     break;
                 }
             }
+
+            is_positive = all_same_color;
+            if (!is_positive) {
+                // color the points the same color
+                for (int i = 0; i < points.size(); ++i) {
+                    if (point_to_color[points[i]] != col) {
+                        std::vector<Simplex> simplices_we_need_to_color = color_to_points[points[i]];
+                        for (int j = 0; j < simplices_we_need_to_color.size(); ++j) {
+                            point_to_color[simplices_we_need_to_color[j]] = col;
+                            color_to_points[col].push_back(simplices_we_need_to_color[j]);
+                        }
+                    }
+                }
+            }
+        }
+        else if (dim == 2) {
+            float* vec = new float[num_edges]();
+            unsigned int min_point = *std::min_element(points.begin(), points.end());
+            unsigned int max_point = *std::max_element(points.begin(), points.end());
+
+            std::vector<Simplex> bound0 = simplices[boundary[0]].boundary();
+            std::vector<Simplex> bound1 = simplices[boundary[1]].boundary();
+            std::vector<Simplex> bound2 = simplices[boundary[2]].boundary();
+
+            vec[boundary[0] - num_points] = 1;
+            vec[boundary[1] - num_points] = 1;
+            vec[boundary[2] - num_points] = 1;
+
+            if (std::find(bound0.begin(), bound0.end(), min_point) != bound0.end() && std::find(bound0.begin(), bound0.end(), max_point) != bound0.end())
+                vec[boundary[0] - num_points] = -1;
+            else if (std::find(bound1.begin(), bound1.end(), min_point) != bound1.end() && std::find(bound1.begin(), bound1.end(), max_point) != bound1.end())
+                vec[boundary[1] - num_points] = -1;
+            else if (std::find(bound2.begin(), bound2.end(), min_point) != bound2.end() && std::find(bound2.begin(), bound2.end(), max_point) != bound2.end())
+                vec[boundary[2] - num_points] = -1;
+
+            bool is_independent = boundary_operator2.add(vec);
+            is_positive = !is_independent;
+        }
+        else {
+            //
         }
 
-
-        if (all_same_color) {
+        if (is_positive) {
             // positive - belongs to a cycle
             creations.insert(new_simplex);
         }
         else {
-            // color newly connected components together
-            for (int i = 0; i < boundary.size(); ++i) {
-                if (simplex_to_color[boundary[i]] != col) {
-                    std::vector<Simplex> simplices_we_need_to_color = color_to_simplices[boundary[i]];
-                    for (int j = 0; j < simplices_we_need_to_color.size(); ++j) {
-                        simplex_to_color[simplices_we_need_to_color[j]] = col;
-                        color_to_simplices[col].push_back(simplices_we_need_to_color[j]);
-                    }
-                    color_to_simplices[boundary[i]] = std::vector<Simplex>();
-                }
-            }
-
             // negative - connects components
+            // color newly connected components together
+            
             // find "victim" (simplex whose bar I end)
             SimplexPriorityQueue spq(simplices, num_simplices);
+            std::set<Simplex> considerd;
             for (int i = 0; i < boundary.size(); ++i) {
                 spq.add(boundary[i]);
+                considerd.insert(boundary[i]);
             }
 
             while (true) {
+                if (spq.size() == 0) break;
                 Simplex youngest = spq.pop();
                 if (creations.find(youngest) != creations.end()) {
                     // "youngest" is still alive, so kill it
@@ -310,8 +334,10 @@ int main(int argc, const char * argv[]) {
                         continue;
                     std::vector<Simplex> bound = simplices[killers[youngest]].boundary();
                     for (int i = 0; i < bound.size(); ++i) {
-                        if (bound[i] != youngest)
+                        if (considerd.find(bound[i]) == considerd.end()) {
                             spq.add(bound[i]);
+                            considerd.insert(bound[i]);
+                        }
                     }
                 }
             }
@@ -366,12 +392,6 @@ int main(int argc, const char * argv[]) {
                 std::cout << "(" << bar_vec[i].start << ", " << bar_vec[i].end << ")" << std::endl;
         }
     }
-
-
-    // save bars to output file
-    std::cout << "sharing our bars with your friend..." << std::endl;
-    std::string output = "stuff";
-    write_file(output_path, output);
 
 
     std::cout << "patching up memory leaks..." << std::endl;
